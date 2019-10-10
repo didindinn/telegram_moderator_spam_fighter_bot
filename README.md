@@ -1,6 +1,8 @@
-# telegraph_export_bot
+# moderator_spam_fighter_bot
 
-Export webpage to Telegraph.
+Add this bot to group, this bot can:
+* Delete new joiner's multimedia posts
+* Support ways to manually approve/disapprove those posts
 
 You are also welcome to use my [@moderator_spam_fighter_bot](https://t.me/moderator_spam_fighter_bot) without create your own bot.
 
@@ -8,15 +10,12 @@ Feedback / feature requests are welcomed at [@dushufenxiang_chat](https://t.me/d
 
 ## usage
 
-Send link to the bot, and bot will reply a telegraph link with extracted article.
+Add this bot to group and set as admin. Moderation message will send directly to you.
 
 Feedback / feature requests are welcomed at [@dushufenxiang_chat](https://t.me/dushufenxiang_chat).
 
 Debug info is recorded in [@bot_debug](https://t.me/bot_debug).
 
-## feature
-
-User can edit the telegraph page afterwards.
 
 ## how to install
 
@@ -26,11 +25,11 @@ Once you get the TOKEN, run `python setup.py YOUR_TOKEN`.
 
 The bot will automatically be running at the end of setup.
 
-If you want to use your own TELEGRAPH_TOKEN, feel free to replace the file.
-
 ## bot description
 
-Send link to the bot, and bot will reply a telegraph link with extracted article. You can edit the telegraph link later.
+Add this bot to group, this bot can:
+* Delete new joiner's multimedia posts
+* Support ways to manually approve/disapprove those posts
 
 Feedback / feature requests are welcomed at @dushufenxiang_chat.
 
@@ -38,20 +37,10 @@ Debug info is recorded in @bot_debug.
 
 Github: https://github.com/gaoyunzhi/telegram_moderator_spam_fighter_bot
 
-## bot commands
-
-token - Get your auth url to edit the generated telegraph.
-auth - Get your auth url to edit the generated telegraph.
-
 ## bot about 
+
+This bot can help moderate the content in your Telegram group.
 
 ## notes
 
 You are also welcome to use my [@moderator_spam_fighter_bot](https://t.me/moderator_spam_fighter_bot) without create your own bot.
-
-Currently, support:
-
-* Wechat
-* BBC
-* StackOverflow
-* NYT
