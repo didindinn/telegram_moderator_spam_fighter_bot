@@ -4,6 +4,7 @@
 from telegram.ext import Updater, MessageHandler, Filters
 import json
 import time
+import os
 
 DEBUG_GROUP = -1001198682178 # @bot_debug
 SELF = 909398533
@@ -66,7 +67,7 @@ def containRiskyWord(msg):
 	if not msg.text:
 		return False
 	for b in BLACKLIST:
-		if b in url.lower():
+		if b in msg.text.lower():
 			return True
 	return False
 
@@ -88,8 +89,14 @@ def getAuthor(msg):
 		result += '(@' + user.username + ')'
 	return '[' + result + '](tg://user?id=' + str(user.id) + ')'
 
+def getGroupName(msg):
+	return '[' + (msg.chat.title or str(msg.chat.id)) + '](t.me/' + (msg.chat.username or '') + ')'
+
 def deleteMsg(msg, bot):
-	bot.send_message(chat_id=DEBUG_GROUP, text=getAuthor(msg) + ': ' + (msg.text or ''), parse_mode='Markdown')
+	bot.send_message(
+		chat_id=DEBUG_GROUP, 
+		text=getAuthor(msg) + ' in ' + getGroupName(msg) + ': ' + (msg.text or ''), 
+		parse_mode='Markdown')
 	if msg.photo:
 		# TODO: make this thread safe
 		if msg.photo[0].get_file():
@@ -102,22 +109,31 @@ def deleteMsg(msg, bot):
 		bot.send_document(chat_id=DEBUG_GROUP, document=open('tmp', 'rb'))
 	bot.delete_message(chat_id=msg.chat_id, message_id=msg.message_id)
 
-def markIfSpam(msg):
+def markIfSpam(msg, bot):
 	# Currently only support bot owner
 	if not msg.from_user.id == BOT_OWNER or msg.text != 'spam':
+		return	
+	if msg.reply_to_message and msg.reply_to_message.from_user.id == SELF:
+		for item in msg.reply_to_message.entities:
+			if (item["type"] == "text_mention"):
+				bad_user = str(item.user.id)
+				BLACKLIST.add(bad_user)
+				saveBlacklist()
+				return
 		return
-	if msg.forward_from:
-		BLACKLIST.add(str(msg.forward_from.id))
+	# untested code	
+	if msg.reply_to_message:
+		BLACKLIST.add(str(msg.reply_to_message.from_user.id))
 		saveBlacklist()
 		bot.delete_message(chat_id=msg.chat_id, message_id=msg.message_id)
-		bot.delete_message(chat_id=msg.chat_id, message_id=msg.forward_from_message_id)
+		bot.delete_message(chat_id=msg.chat_id, message_id=msg.reply_to_message.message_id)
 
 def handleGroup(update, context):
 	try:
 		msg = update.message
 		if shouldDelete(msg):
 			deleteMsg(msg, context.bot)
-		markIfSpam(msg)
+		markIfSpam(msg, context.bot)
 	except Exception as e:
 		print(e)
 		tb.print_exc()
