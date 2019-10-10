@@ -2,73 +2,74 @@
 # -*- coding: utf-8 -*-
 
 from telegram.ext import Updater, MessageHandler, Filters
-
-import requests
 import json
-from bs4 import BeautifulSoup
-from html_telegraph_poster import TelegraphPoster
+import time
 
 DEBUG_GROUP = -1001198682178 # @bot_debug
-
-class Article(object):
-	def __init__(self, title, author, text):
-		self.title = title
-		self.author = author
-		self.text = text
+SELF = 909398533
+JOIN_TIME = {}
+NEW_USER_WAIT_TIME = 3600 * 8
 
 try:
-	with open('TELEGRAPH_TOKENS') as f:
-		TELEGRAPH_TOKENS = json.load(f)
+	with open('ADMINS') as f:
+		ADMINS = json.load(f)
 except:
-	TELEGRAPH_TOKENS = {}
+	ADMINS = {}
 
-def saveTelegraphTokens():
-	with open('TELEGRAPH_TOKENS', 'w') as f:
-		f.write(json.dumps(TELEGRAPH_TOKENS, sort_keys=True, indent=2))
+try:
+	with open('BLACKLIST') as f:
+		BLACKLIST = f.readlines()
+		BLACKLIST = [x.strip() for x in BLACKLIST]
+		BLACKLIST = set([x for x in BLACKLIST if x])
+except:
+	BLACKLIST = set()
 
-def getPoster(msg, id, forceMessageAuthUrl=False):
-	if str(id) in TELEGRAPH_TOKENS:
-		p = TelegraphPoster(access_token = TELEGRAPH_TOKENS[str(id)])
-		if forceMessageAuthUrl:
-			msgAuthUrl(msg, p)
-		return p
-	p = TelegraphPoster()
-	r = p.create_api_token(msg.from_user.first_name, msg.from_user.username)
-	TELEGRAPH_TOKENS[str(id)] = r['access_token']
-	saveTelegraphTokens()
-	msgAuthUrl(msg, p)
-	return p
+def saveAdmins():
+	with open('ADMINS', 'w') as f:
+		f.write(json.dumps(ADMINS, sort_keys=True, indent=2))
 
-def msgAuthUrl(msg, p):
-	r = p.get_account_info(fields=['auth_url'])
-	msg.reply_text('Use this URL to login in 5 minutes: ' + r['auth_url'])
+def saveBlacklist():
+	with open('BLACKLIST', 'w') as f:
+		f.write('\n'.join(sorted(BLACKLIST)))
 
-def wechat2Article(soup):
-	title = soup.find("h2").text.strip()
-	author = soup.find("a", {"id" : "js_name"}).text.strip()
-	g = soup.find("div", {"id" : "js_content"})
-	for img in g.find_all("img"):
-		b = soup.new_tag("figure")
-		b.append(soup.new_tag("img", src = img["data-src"]))
-		img.append(b)
-	for section in g.find_all("section"):
-		b = soup.new_tag("p")
-		b.append(BeautifulSoup(str(section), features="lxml"))
-		section.replace_with(b)
-	return Article(title, author, g)
-	
+def handleJoin(update, context):
+	try:
+		msg = update.message
+		for member in msg.new_chat_members:
+			if member.id == SELF:
+				ADMINS[str(msg.chat.id)] = msg.from_user.id
+				saveAdmins()
+			elif not member.id in JOIN_TIME:
+				JOIN_TIME[msg.chat.id] = JOIN_TIME.get(msg.chat.id, {})
+				JOIN_TIME[msg.chat.id][member.id] = time.time()
+	except Exception as e:
+		print(e)
+		tb.print_exc()
 
-def stackoverflow2Article(soup):
-	title = soup.find("title").text.strip()
-	title = title.replace('- Stack Overflow', '').strip()
-	g = soup.find("div", class_ = "answercell")
-	g = g.find("div", class_ = "post-text")
-	for section in g.find_all("section"):
-		b = soup.new_tag("p")
-		b.append(BeautifulSoup(str(section), features="lxml"))
-		section.replace_with(b)
-	
-	return Article(title, 'Stack Overflow', g)
+def isNewUser(msg):
+	if not msg.chat.id in JOIN_TIME:
+		return False
+	if not msg.from_user.id in JOIN_TIME[msg.chat.id]:
+		return False
+	return JOIN_TIME[msg.chat.id][msg.from_user.id] > time.time() - NEW_USER_WAIT_TIME
+
+def isMultiMedia(msg):
+	return msg.photo or msg.sticker or msg.video
+
+def containRiskyWord(msg):
+	if not msg.text:
+		return False
+	for b in BLACKLIST:
+		if b in url.lower():
+			return True
+	return False
+
+def isBlockerUser(id):
+	return str(id) in BLACKLIST
+
+def shouldDelete(msg):
+	return (isNewUser(msg) and (isMultiMedia(msg) or containRiskyWord(msg))) \
+		or isBlockerUser(msg.from_user.id)
 
 def getAuthor(msg):
 	result = ''
@@ -81,116 +82,22 @@ def getAuthor(msg):
 		result += '(@' + user.username + ')'
 	return result
 
-def bbc2Article(soup):
-	title = soup.find("h1").text.strip()
-	g = soup.find("div", class_ = "story-body__inner")
-	for elm in g.find_all('span', class_="off-screen"):
-		elm.decompose()
-	for elm in g.find_all('ul', class_="story-body__unordered-list"):
-		elm.decompose()
-	for elm in g.find_all('span', class_="story-image-copyright"):
-		elm.decompose()
-	for img in g.find_all("div", class_="js-delayed-image-load"):
-		b = soup.new_tag("figure", width=img['data-width'], height=img['data-height'])
-		b.append(soup.new_tag("img", src = img["data-src"], width=img['data-width'], height=img['data-height']))
-		img.replace_with(b)
-	for section in g.find_all("section"):
-		b = soup.new_tag("p")
-		b.append(BeautifulSoup(str(section), features="lxml"))
-		section.replace_with(b)
-	return Article(title, 'BBC', g)
-
-NYT_ADS = '《纽约时报》推出每日中文简报'
-def nyt2Article(soup):
-	title = soup.find("meta", {"property": "twitter:title"})['content'].strip()
-	author = soup.find("meta", {"name": "byl"})['content'].strip()
-	g = soup.find("article")
-	for link in g.find_all("a"):
-		if not '英文版' in link.text:
-			link.replace_with(link.text)
-	for item in g.find_all("div", class_="article-header"):
-		item.decompose()
-	for item in g.find_all("div", class_="article-paragraph"):
-		if item.text and NYT_ADS in item.text:
-			item.decompose()
-		elif item.text == '广告':
-			item.decompose()
-		else:
-			wrapper = soup.new_tag("p")
-			wrapper.append(BeautifulSoup(str(item), features="lxml"))
-			item.replace_with(wrapper)
-	for item in g.find_all("footer", class_="author-info"):
-		for subitem in item.find_all("a"):
-			if subitem.text and "英文版" in subitem.text:
-				item.replace_with(subitem)
-				break
-	return Article(title, author + ' - NYT', g)
-
-def telegraph2Article(soup):
-	title = soup.find("meta", {"name": "twitter:title"})['content'].strip()
-	author = soup.find("meta", {"property": "article:author"})['content'].strip()
-	g = soup.find("article")
-	item = g.find('h1')
-	if item:
-		item.decompose()
-	item = g.find('address')
-	if item:
-		item.decompose()
-	return Article(title, author, g)
-
-def getArticle(URL):
-	r = requests.get(URL)
-	soup = BeautifulSoup(r.text, 'html.parser')
-	if "mp.weixin.qq.com" in URL:
-		return wechat2Article(soup)
-	if "stackoverflow.com" in URL:
-		return stackoverflow2Article(soup)
-	if "bbc.com" in URL:
-		return bbc2Article(soup)
-	if "nytimes.com" in URL:
-		return nyt2Article(soup)
-	if "telegra.ph" in URL:
-		return telegraph2Article(soup)
-	return telegraph2Article(soup)
-
-def getTelegraph(msg, URL):
-	usr_id = msg.from_user.id
-	p = getPoster(msg, usr_id)
-	article = getArticle(URL)
-	r = p.post(title = article.title, author = article.author, author_url = URL, text = str(article.text)[:80000])
-	return r["url"]
-
-def trimURL(URL):
-	if not '://' in URL:
-		return URL
-	loc = URL.find('://')
-	return URL[loc + 3:]
-
-def exportImp(update, context):
-	msg = update.message
-	for item in msg.entities:
-		if (item["type"] == "url"):
-			URL = msg.text[item["offset"]:][:item["length"]]
-			if not '://' in URL:
-				URL = "https://" + URL
-			u = trimURL(getTelegraph(msg, URL))
-			msg.reply_text(u)
-			r = context.bot.send_message(chat_id=DEBUG_GROUP, text=getAuthor(msg) + ': ' + u)
-
-def export(update, context):
+def handleGroup(update, context):
 	try:
-		exportImp(update, context)
+		msg = update.message
+		if shouldDelete(msg):
+			r = context.bot.send_message(chat_id=DEBUG_GROUP, text=getAuthor(msg) + ': ' + u)
+			context.bot.delete_message(chat_id=msg.chat_id, message_id=msg.message_id)
+
+
+
 	except Exception as e:
 		print(e)
 		tb.print_exc()
 
-def command(update, context):
+def handlePrivate(update, context):
 	try:
-		if update.message.text and \
-			('token' in update.message.text.lower() or 'auth' in update.message.text.lower()):
-			id = update.message.from_user.id
-			return getPoster(update.message, id, forceMessageAuthUrl=True)
-		return update.message.reply_text('Feed me link, currently support wechat, bbc, stackoverflow, NYT')
+		return update.message.reply_text('Add me to the group you admin and promote me as Admin please.')
 	except Exception as e:
 		print(e)
 		tb.print_exc()
@@ -201,8 +108,9 @@ with open('TOKEN') as f:
 updater = Updater(TOKEN, use_context=True)
 dp = updater.dispatcher
 
-dp.add_handler(MessageHandler(Filters.text & Filters.private, export))
-dp.add_handler(MessageHandler(Filters.private & Filters.command, command))
+dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, handleJoin))
+dp.add_handler(MessageHandler(Filters.group, handleGroup))
+dp.add_handler(MessageHandler(Filters.private, handlePrivate))
 
 updater.start_polling()
 updater.idle()
