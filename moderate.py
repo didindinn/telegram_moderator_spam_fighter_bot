@@ -86,7 +86,7 @@ def getAuthor(msg):
 	if user.last_name:
 		result += ' ' + user.last_name
 	if user.username:
-		result += '(@' + user.username + ')'
+		result += '(' + user.username + ')'
 	return '[' + result + '](tg://user?id=' + str(user.id) + ')'
 
 def getGroupName(msg):
