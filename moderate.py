@@ -89,7 +89,7 @@ def getAuthor(msg):
 	return '[' + result + '](tg://user?id=' + str(user.id) + ')'
 
 def deleteMsg(msg, bot):
-	bot.send_message(chat_id=DEBUG_GROUP, text=getAuthor(msg) + ': ' + (msg.text || ''), parse_mode='Markdown')
+	bot.send_message(chat_id=DEBUG_GROUP, text=getAuthor(msg) + ': ' + (msg.text or ''), parse_mode='Markdown')
 	if msg.photo:
 		# TODO: make this thread safe
 		if msg.photo[0].get_file():
@@ -109,6 +109,8 @@ def markIfSpam(msg):
 	if msg.forward_from:
 		BLACKLIST.add(str(msg.forward_from.id))
 		saveBlacklist()
+		bot.delete_message(chat_id=msg.chat_id, message_id=msg.message_id)
+		bot.delete_message(chat_id=msg.chat_id, message_id=msg.forward_from_message_id)
 
 def handleGroup(update, context):
 	try:
