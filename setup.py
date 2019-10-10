@@ -2,7 +2,7 @@ import os
 import sys
 
 def setup(token):
-	RUN_COMMAND = 'nohup python3 telegraph_bot.py &'
+	RUN_COMMAND = 'nohup python3 moderate.py &'
 
 	TOKEN = ''
 	try:
@@ -25,21 +25,6 @@ def setup(token):
 
 		with open('TOKEN', 'w') as f:
 			f.write(token)
-
-	TELEGRAPH_TOKEN = ''
-	try:
-		with open('TELEGRAPH_TOKEN') as f:
-			TELEGRAPH_TOKEN = f.readline().strip()
-	except:
-		pass
-
-	if not TELEGRAPH_TOKEN:
-		from html_telegraph_poster import TelegraphPoster
-		t = TelegraphPoster()
-		r = t.create_api_token('dushufenxiang', 'dushufenxiang', 'https://t.me/dushufenxiang_chat')
-		with open('TELEGRAPH_TOKEN', 'w') as f:
-			f.write(r['access_token'])
-		print('Please use this url to login to your telegraph account on your browser. Link will expire in a few minutes.' + r['auth_url'])
 
 	return os.system(RUN_COMMAND)
 

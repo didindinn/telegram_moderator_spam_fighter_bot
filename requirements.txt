@@ -1,3 +1,1 @@
 python-telegram-bot
-html_telegraph_poster
-bs4
