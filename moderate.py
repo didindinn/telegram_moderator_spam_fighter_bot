@@ -135,7 +135,7 @@ def ban(bad_user, bot):
 				text=getDisplayUser(bad_user) + ' already banned',
 				parse_mode='Markdown')
 		return
-	BLACKLIST.add(str(id))
+	BLACKLIST.add(str(bad_user.id))
 	saveBlacklist()
 	bot.send_message(
 			chat_id=DEBUG_GROUP,
