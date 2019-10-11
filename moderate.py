@@ -95,12 +95,25 @@ def getGroupName(msg):
 	return '[' + (msg.chat.title or
 								str(msg.chat.id)) + '](t.me/' + (msg.chat.username or '') + ')'
 
+def getMsgType(msg):
+	print(msg)
+	if msg.photo:
+		return 'photo'
+	if msg.video:
+		return 'video'
+	if msg.sticker:
+		return 'sticker'
+	if msg.text:
+		return 'text'
+	return 'other'
+
 def deleteMsg(msg, bot):
 	bot.send_message(
 			chat_id=DEBUG_GROUP,
 			text=getDisplayUser(msg.from_user) + ' in ' + getGroupName(msg) + ': ' +
-			(msg.text or ''),
-			parse_mode='Markdown')
+			(msg.text or '') + '\n' + 'message type: ' + getMsgType(msg),
+			parse_mode='Markdown',
+			disable_web_page_preview=True)
 	if msg.photo:
 		# TODO: make this thread safe
 		if msg.photo[0].get_file():
