@@ -123,7 +123,8 @@ def deleteMsg(msg, bot):
 	if msg.video:
 		if msg.video.get_file():
 			msg.video.get_file().download('tmp')
-		bot.send_document(chat_id=DEBUG_GROUP, document=open('tmp', 'rb'))
+			bot.send_document(chat_id=DEBUG_GROUP, document=open('tmp', 'rb'))
+			os.system('rm tmp')
 	bot.delete_message(chat_id=msg.chat_id, message_id=msg.message_id)
 
 def ban(bad_user, bot):
