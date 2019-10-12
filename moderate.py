@@ -105,6 +105,10 @@ def getMsgType(msg):
 		return 'sticker'
 	if msg.text:
 		return 'text'
+	if msg.left_chat_member:
+		return 'left'
+	if msg.new_chat_members:
+		return 'join'
 	return 'other'
 
 def deleteMsg(msg, bot):
@@ -191,6 +195,9 @@ def handlePrivate(update, context):
 		print(e)
 		tb.print_exc()
 
+def deleteMsgHandle(update, context):
+	deleteMsg(update.message, context.bot)
+
 with open('TOKEN') as f:
 	TOKEN = f.readline().strip()
 
@@ -199,6 +206,10 @@ dp = updater.dispatcher
 
 dp.add_handler(
 		MessageHandler(Filters.status_update.new_chat_members, handleJoin))
+dp.add_handler(
+		MessageHandler(Filters.status_update.new_chat_members, deleteMsgHandle))
+dp.add_handler(
+		MessageHandler(Filters.status_update.left_chat_member, deleteMsgHandle))
 dp.add_handler(MessageHandler(Filters.group, handleGroup))
 dp.add_handler(MessageHandler(Filters.private, handlePrivate))
 
