@@ -112,24 +112,29 @@ def getMsgType(msg):
 	return 'other'
 
 def deleteMsg(msg, bot):
-	bot.send_message(
-			chat_id=DEBUG_GROUP,
-			text=getDisplayUser(msg.from_user) + ' in ' + getGroupName(msg) + ': ' +
-			(msg.text or '') + '\n' + 'message type: ' + getMsgType(msg),
-			parse_mode='Markdown',
-			disable_web_page_preview=True)
-	if msg.photo:
-		# TODO: make this thread safe
-		if msg.photo[0].get_file():
-			msg.photo[0].get_file().download('tmp')
-			bot.send_photo(chat_id=DEBUG_GROUP, photo=open('tmp', 'rb'))
-			os.system('rm tmp')
-	if msg.video:
-		if msg.video.get_file():
-			msg.video.get_file().download('tmp')
-			bot.send_document(chat_id=DEBUG_GROUP, document=open('tmp', 'rb'))
-			os.system('rm tmp')
-	bot.delete_message(chat_id=msg.chat_id, message_id=msg.message_id)
+	try:
+		bot.send_message(
+				chat_id=DEBUG_GROUP,
+				text=getDisplayUser(msg.from_user) + ' in ' + getGroupName(msg) + ': ' +
+				(msg.text or '') + '\n' + 'message type: ' + getMsgType(msg),
+				parse_mode='Markdown',
+				disable_web_page_preview=True)
+		if msg.photo:
+			# TODO: make this thread safe
+			if msg.photo[0].get_file():
+				msg.photo[0].get_file().download('tmp')
+				bot.send_photo(chat_id=DEBUG_GROUP, photo=open('tmp', 'rb'))
+				os.system('rm tmp')
+		if msg.video:
+			if msg.video.get_file():
+				msg.video.get_file().download('tmp')
+				bot.send_document(chat_id=DEBUG_GROUP, document=open('tmp', 'rb'))
+				os.system('rm tmp')
+		msg.delete()
+	except Exception as e:
+		print(e)
+		tb.print_exc()
+
 
 def ban(bad_user, bot):
 	if bad_user.id == THIS_BOT:
@@ -176,6 +181,7 @@ def markBan(msg, bot):
 def handleGroup(update, context):
 	try:
 		msg = update.message
+		print(msg)
 		if shouldDelete(msg):
 			deleteMsg(msg, context.bot)
 		if msg.from_user.id != BOT_OWNER:
@@ -196,7 +202,11 @@ def handlePrivate(update, context):
 		tb.print_exc()
 
 def deleteMsgHandle(update, context):
-	deleteMsg(update.message, context.bot)
+	try:
+		deleteMsg(update.message, context.bot)
+	except Exception as e:
+		print(e)
+		tb.print_exc()
 
 with open('TOKEN') as f:
 	TOKEN = f.readline().strip()
@@ -207,11 +217,11 @@ dp = updater.dispatcher
 dp.add_handler(
 		MessageHandler(Filters.status_update.new_chat_members, handleJoin))
 dp.add_handler(
-		MessageHandler(Filters.status_update.new_chat_members, deleteMsgHandle))
+		MessageHandler(Filters.status_update.new_chat_members, deleteMsgHandle), group = 1)
 dp.add_handler(
-		MessageHandler(Filters.status_update.left_chat_member, deleteMsgHandle))
-dp.add_handler(MessageHandler(Filters.group, handleGroup))
-dp.add_handler(MessageHandler(Filters.private, handlePrivate))
+		MessageHandler(Filters.status_update.left_chat_member, deleteMsgHandle), group = 1)
+dp.add_handler(MessageHandler(Filters.group, handleGroup), group = 2)
+dp.add_handler(MessageHandler(Filters.private, handlePrivate), group = 3)
 
 updater.start_polling()
 updater.idle()
