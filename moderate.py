@@ -152,31 +152,31 @@ def ban(bad_user, bot):
 			text=getDisplayUser(bad_user) + ' banned',
 			parse_mode='Markdown')
 
-# ban the user and remove the command
-def inGroupBan(msg, bot, bad_user):
-	ban(bad_user, bot)
-	bot.delete_message(chat_id=msg.chat_id, message_id=msg.message_id)
-
-def markIfSpam(msg, bot):
-	if msg.text != 'spam':
+def unban(not_so_bad_user, bot):
+	if str(not_so_bad_user.id) not in BLACKLIST:
+		bot.send_message(
+				chat_id=DEBUG_GROUP,
+				text=getDisplayUser(not_so_bad_user) + ' not banned',
+				parse_mode='Markdown')
 		return
+	BLACKLIST.remove(str(not_so_bad_user.id))
+	saveBlacklist()
+	bot.send_message(
+			chat_id=DEBUG_GROUP,
+			text=getDisplayUser(not_so_bad_user) + ' unbanned',
+			parse_mode='Markdown')
+
+def markAction(msg, bot, action)
 	if msg.reply_to_message and msg.reply_to_message.from_user.id == THIS_BOT:
 		for item in msg.reply_to_message.entities:
 			if item['type'] == 'text_mention':
-				ban(item.user, bot)
+				action(item.user, bot)
 				return
 		return
-	# untested code
 	if msg.reply_to_message:
-		inGroupBan(msg, bot, msg.reply_to_message.from_user)
-		bot.delete_message(
-				chat_id=msg.chat_id, message_id=msg.reply_to_message.message_id)
-
-def markBan(msg, bot):
-	if msg.text != 'ban':
-		return
-	if msg.reply_to_message:
-		inGroupBan(msg, bot, msg.reply_to_message.from_user)
+		# in group, action and remove the command
+		action(msg.reply_to_message.from_user, bot)
+		bot.delete_message(chat_id=msg.chat_id, message_id=msg.message_id)
 
 def handleGroup(update, context):
 	try:
@@ -187,8 +187,14 @@ def handleGroup(update, context):
 		if msg.from_user.id != BOT_OWNER:
 			return
 		# bot owner only
-		markIfSpam(msg, context.bot)
-		markBan(msg, context.bot)
+		if msg.text == 'spam' or msg.text == 'ban':
+			markAction(msg, context.bot, ban)
+		if msg.text == 'spam':
+			bot.delete_message(
+				chat_id=msg.chat_id, message_id=msg.reply_to_message.message_id)
+		if msg.text == 'unban':
+			# not tested
+			markAction(msg, context.bot, unban)
 	except Exception as e:
 		print(e)
 		tb.print_exc()
