@@ -166,7 +166,7 @@ def unban(not_so_bad_user, bot):
 			text=getDisplayUser(not_so_bad_user) + ' unbanned',
 			parse_mode='Markdown')
 
-def markAction(msg, bot, action)
+def markAction(msg, bot, action):
 	if msg.reply_to_message and msg.reply_to_message.from_user.id == THIS_BOT:
 		for item in msg.reply_to_message.entities:
 			if item['type'] == 'text_mention':
