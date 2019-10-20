@@ -190,7 +190,7 @@ def handleGroup(update, context):
 		if msg.text == 'spam' or msg.text == 'ban':
 			markAction(msg, context.bot, ban)
 		if msg.text == 'spam':
-			bot.delete_message(
+			context.bot.delete_message(
 				chat_id=msg.chat_id, message_id=msg.reply_to_message.message_id)
 		if msg.text == 'unban':
 			# not tested
