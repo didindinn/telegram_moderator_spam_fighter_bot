@@ -1,30 +1,19 @@
 import os
 import sys
 
-def setup(token):
+def setup(mode):
 	RUN_COMMAND = 'nohup python3 moderate.py &'
 
-	TOKEN = ''
-	try:
-		with open('TOKEN') as f:
-			TOKEN = f.readline().strip()
-	except:
-		pass
+	with open('TOKEN') as f:
+		TOKEN = f.readline().strip()
 
-	if not TOKEN and not token:
-		print('ERROR: please run as `python setup.py YOUR_TOKEN`.')
-		return
-
-	if token and TOKEN != token:
+	if mode != 'reload':
 		os.system('curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py')
 		os.system('python3 get-pip.py')
 		os.system('rm get-pip.py')
 
 		os.system('pip3 install -r requirements.txt')
 		os.system('pip3 install python-telegram-bot --upgrade') # need to use some experiement feature, e.g. message filtering
-
-		with open('TOKEN', 'w') as f:
-			f.write(token)
 
 	return os.system(RUN_COMMAND)
 
