@@ -88,11 +88,15 @@ def getMsgType(msg):
 
 @log_on_fail()
 def deleteMsg(msg):
+	text = msg.text
+	if text:
+		text = ': ' + text
+	else:
+		text = ''
 	debug_group.send_message(
 		text=getDisplayUser(msg.from_user) + ' ' + getMsgType(msg) + 
-		' ' + getGroupName(msg) + ': ' + (msg.text or ''),
-		parse_mode='Markdown',
-		disable_web_page_preview=True)
+		' ' + getGroupName(msg) + text,
+		parse_mode='Markdown')
 	if msg.photo:
 		filename = getTmpFile(msg)
 		debug_group.send_photo(photo=open(filename, 'rb'))
