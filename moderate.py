@@ -5,7 +5,7 @@ from telegram.ext import Updater, MessageHandler, Filters
 import time
 import os
 import traceback as tb
-from telegram_util import getDisplayUser, log_on_fail, getTmpFile
+from telegram_util import getDisplayUser, log_on_fail, getTmpFile, matchKey, autoDestroy
 import yaml
 
 JOIN_TIME = {}
@@ -20,6 +20,11 @@ r.delete()
 debug_group = r.chat
 this_bot = r.from_user.id
 BOT_OWNER = CREDENTIALS['owner']
+
+quotes = ["'", '"', '‘', '“', '【']
+
+with open('BETTER_AVOID_WORDS') as f:
+    better_avoid_words = set(yaml.load(f, Loader=yaml.FullLoader))
 
 with open('BLACKLIST') as f:
 	BLACKLIST = [x.strip() for x in f.readlines()]
@@ -139,7 +144,16 @@ def markAction(msg, action):
 
 @log_on_fail()
 def remindIfNecessary(msg):
-	pass
+	if not msg.text:
+		return
+	if matchKeys(msg.text, better_avoid_words) and not matchKeys(msg.text, quotes):
+		reminder = '建议避免使用带有强烈主观判断的词哦，比如：' + ', '.join(better_avoid_words) + \
+			'。 谢谢！'
+		autoDestroy(msg.reply_text(reminder), 10)
+	emotional_words = ['意淫', '凭什么']
+	if matchKeys(msg.text, emotional_words) or msg.text.count('?') + msg.text.count('？') >= 3:
+		reminder = '反问，反讽不利于友好交流哦，建议您换成大家更容易理解的表达。谢谢！'
+		autoDestroy(msg.reply_text(reminder), 10)
 
 @log_on_fail()
 def handleGroup(update, context):
@@ -156,7 +170,7 @@ def handleGroup(update, context):
 	if msg.text == 'spam':
 		context.bot.delete_message(
 			chat_id=msg.chat_id, message_id=msg.reply_to_message.message_id)
-	if msg.text == 'unban':
+	if msg.text == 'unban':  
 		markAction(msg, unban)
 
 def handlePrivate(update, context):
