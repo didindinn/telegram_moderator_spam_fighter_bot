@@ -2,7 +2,7 @@ import os
 import sys
 
 def setup(mode):
-	RUN_COMMAND = 'nohup python3 moderate.py &'
+	RUN_COMMAND = 'nohup python3 -u moderate.py &'
 
 	if mode != 'debug':
 		r = os.system('sudo pip3 install -r requirements.txt')

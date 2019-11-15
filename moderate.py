@@ -36,7 +36,8 @@ def saveBlacklist():
 
 @log_on_fail(debug_group)
 def handleJoin(update, context):
-	for member in update.message.new_chat_members:
+	msg = update.message
+	for member in msg.new_chat_members:
 		if member.id != this_bot and member.id not in JOIN_TIME:
 			JOIN_TIME[msg.chat.id] = JOIN_TIME.get(msg.chat.id, {})
 			JOIN_TIME[msg.chat.id][member.id] = time.time()
