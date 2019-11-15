@@ -13,12 +13,6 @@ JOIN_TIME = {}
 NEW_USER_WAIT_TIME = 3600 * 8
 
 try:
-	with open('ADMINS') as f:
-		ADMINS = json.load(f)
-except:
-	ADMINS = {}
-
-try:
 	with open('BOT_OWNER') as f:
 		BOT_OWNER = int(f.read())
 except:
@@ -32,10 +26,6 @@ try:
 except:
 	BLACKLIST = set()
 
-def saveAdmins():
-	with open('ADMINS', 'w') as f:
-		f.write(json.dumps(ADMINS, sort_keys=True, indent=2))
-
 def saveBlacklist():
 	with open('BLACKLIST', 'w') as f:
 		f.write('\n'.join(sorted(BLACKLIST)))
@@ -44,11 +34,7 @@ def handleJoin(update, context):
 	try:
 		msg = update.message
 		for member in msg.new_chat_members:
-			if member.id == THIS_BOT:
-				# currently, these two lines are useless
-				ADMINS[str(msg.chat.id)] = msg.from_user.id
-				saveAdmins()
-			elif not member.id in JOIN_TIME:
+			if member.id != THIS_BOT and member.id not in JOIN_TIME:
 				JOIN_TIME[msg.chat.id] = JOIN_TIME.get(msg.chat.id, {})
 				JOIN_TIME[msg.chat.id][member.id] = time.time()
 	except Exception as e:
