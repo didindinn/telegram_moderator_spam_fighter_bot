@@ -63,7 +63,7 @@ def shouldDelete(msg):
 	 or isBlockedUser(msg.from_user.id)
 
 def getGroupName(msg):
-	return '[' + (msg.chat.title or str(msg.chat.id)) + 
+	return '[' + (msg.chat.title or str(msg.chat.id)) + \
 		'](t.me/' + (msg.chat.username or '') + ')'
 
 def getMsgType(msg):
@@ -136,6 +136,10 @@ def markAction(msg, action):
 		r = msg.reply_text('请大家互相理解，友好交流。')
 		r.delete()
 		msg.delete()
+
+@log_on_fail()
+def remindIfNecessary(msg):
+	pass
 
 @log_on_fail()
 def handleGroup(update, context):
