@@ -34,7 +34,7 @@ def saveBlacklist():
 	with open('BLACKLIST', 'w') as f:
 		f.write('\n'.join(sorted(BLACKLIST)))
 
-@log_on_fail()
+@log_on_fail(debug_group)
 def handleJoin(update, context):
 	for member in update.message.new_chat_members:
 		if member.id != this_bot and member.id not in JOIN_TIME:
@@ -86,7 +86,7 @@ def getMsgType(msg):
 		return 'joined'
 	return 'did some action'
 
-@log_on_fail()
+@log_on_fail(debug_group)
 def deleteMsg(msg):
 	text = msg.text
 	if text:
@@ -147,7 +147,7 @@ def markAction(msg, action):
 		r.delete()
 		msg.delete()
 
-@log_on_fail()
+@log_on_fail(debug_group)
 def remindIfNecessary(msg):
 	if not msg.text:
 		return
@@ -160,7 +160,7 @@ def remindIfNecessary(msg):
 		reminder = '反问，反讽不利于友好交流哦，建议您换成大家更容易理解的表达哦。谢谢啦！'
 		autoDestroy(msg.reply_text(reminder), 10)
 
-@log_on_fail()
+@log_on_fail(debug_group)
 def handleGroup(update, context):
 	msg = update.message
 	if not msg:
