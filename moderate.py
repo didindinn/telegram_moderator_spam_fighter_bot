@@ -96,7 +96,8 @@ def deleteMsg(msg):
 	debug_group.send_message(
 		text=getDisplayUser(msg.from_user) + ' ' + getMsgType(msg) + 
 		' ' + getGroupName(msg) + text,
-		parse_mode='Markdown')
+		parse_mode='Markdown',
+		disable_web_page_preview=True)
 	if msg.photo:
 		filename = getTmpFile(msg)
 		debug_group.send_photo(photo=open(filename, 'rb'))
