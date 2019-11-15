@@ -82,27 +82,26 @@ def getGroupName(msg):
 								str(msg.chat.id)) + '](t.me/' + (msg.chat.username or '') + ')'
 
 def getMsgType(msg):
-	print(msg)
 	if msg.photo:
-		return 'photo'
+		return 'sent photo in'
 	if msg.video:
-		return 'video'
+		return 'sent video in'
 	if msg.sticker:
-		return 'sticker'
+		return 'sent sticker in'
 	if msg.text:
-		return 'text'
+		return 'texted'
 	if msg.left_chat_member:
 		return 'left'
 	if msg.new_chat_members:
-		return 'join'
-	return 'other'
+		return 'joined'
+	return 'did some action'
 
 def deleteMsg(msg, bot):
 	try:
 		bot.send_message(
 				chat_id=DEBUG_GROUP,
-				text=getDisplayUser(msg.from_user) + ' in ' + getGroupName(msg) + ': ' +
-				(msg.text or '') + '\n' + 'message type: ' + getMsgType(msg),
+				text=getDisplayUser(msg.from_user) + ' ' + getMsgType(msg) + 
+				' ' + getGroupName(msg) + ': ' + (msg.text or ''),
 				parse_mode='Markdown',
 				disable_web_page_preview=True)
 		if msg.photo:
