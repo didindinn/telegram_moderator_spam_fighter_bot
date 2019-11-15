@@ -6,6 +6,7 @@ import json
 import time
 import os
 import traceback as tb
+from telegram_util import getDisplayUser, log_on_fail, getTmpFile
 
 DEBUG_GROUP = -1001198682178  # @bot_debug
 THIS_BOT = 909398533
@@ -18,28 +19,20 @@ try:
 except:
 	BOT_OWNER = 0
 
-try:
-	with open('BLACKLIST') as f:
-		BLACKLIST = f.readlines()
-		BLACKLIST = [x.strip() for x in BLACKLIST]
-		BLACKLIST = set([x for x in BLACKLIST if x])
-except:
-	BLACKLIST = set()
+with open('BLACKLIST') as f:
+	BLACKLIST = [x.strip() for x in f.readlines()]
+	BLACKLIST = set([x for x in BLACKLIST if x])
 
 def saveBlacklist():
 	with open('BLACKLIST', 'w') as f:
 		f.write('\n'.join(sorted(BLACKLIST)))
 
+@log_on_fail()
 def handleJoin(update, context):
-	try:
-		msg = update.message
-		for member in msg.new_chat_members:
-			if member.id != THIS_BOT and member.id not in JOIN_TIME:
-				JOIN_TIME[msg.chat.id] = JOIN_TIME.get(msg.chat.id, {})
-				JOIN_TIME[msg.chat.id][member.id] = time.time()
-	except Exception as e:
-		print(e)
-		tb.print_exc()
+	for member in update.message.new_chat_members:
+		if member.id != THIS_BOT and member.id not in JOIN_TIME:
+			JOIN_TIME[msg.chat.id] = JOIN_TIME.get(msg.chat.id, {})
+			JOIN_TIME[msg.chat.id][member.id] = time.time()
 
 def isNewUser(msg):
 	if not msg.chat.id in JOIN_TIME:
@@ -56,7 +49,7 @@ def containRiskyWord(msg):
 	if not msg.text:
 		return False
 	for b in BLACKLIST:
-		if b in msg.text.lower():
+		if b.lower() in msg.text.lower():
 			return True
 	return False
 
@@ -67,19 +60,9 @@ def shouldDelete(msg):
 	return (isNewUser(msg) and (isMultiMedia(msg) or containRiskyWord(msg))) \
 	 or isBlockedUser(msg.from_user.id)
 
-def getDisplayUser(user):
-	result = ''
-	if user.first_name:
-		result += user.first_name
-	if user.last_name:
-		result += ' ' + user.last_name
-	if user.username:
-		result += ' (' + user.username + ')'
-	return '[' + result + '](tg://user?id=' + str(user.id) + ')'
-
 def getGroupName(msg):
-	return '[' + (msg.chat.title or
-								str(msg.chat.id)) + '](t.me/' + (msg.chat.username or '') + ')'
+	return '[' + (msg.chat.title or str(msg.chat.id)) + 
+		'](t.me/' + (msg.chat.username or '') + ')'
 
 def getMsgType(msg):
 	if msg.photo:
@@ -96,29 +79,23 @@ def getMsgType(msg):
 		return 'joined'
 	return 'did some action'
 
+@log_on_fail()
 def deleteMsg(msg, bot):
-	try:
-		bot.send_message(
-				chat_id=DEBUG_GROUP,
-				text=getDisplayUser(msg.from_user) + ' ' + getMsgType(msg) + 
-				' ' + getGroupName(msg) + ': ' + (msg.text or ''),
-				parse_mode='Markdown',
-				disable_web_page_preview=True)
-		if msg.photo:
-			# TODO: make this thread safe
-			if msg.photo[0].get_file():
-				msg.photo[0].get_file().download('tmp')
-				bot.send_photo(chat_id=DEBUG_GROUP, photo=open('tmp', 'rb'))
-				os.system('rm tmp')
-		if msg.video:
-			if msg.video.get_file():
-				msg.video.get_file().download('tmp')
-				bot.send_document(chat_id=DEBUG_GROUP, document=open('tmp', 'rb'))
-				os.system('rm tmp')
-		msg.delete()
-	except Exception as e:
-		print(e)
-		tb.print_exc()
+	bot.send_message(
+		chat_id=DEBUG_GROUP,
+		text=getDisplayUser(msg.from_user) + ' ' + getMsgType(msg) + 
+		' ' + getGroupName(msg) + ': ' + (msg.text or ''),
+		parse_mode='Markdown',
+		disable_web_page_preview=True)
+	if msg.photo:
+		filename = getTmpFile(msg)
+		bot.send_photo(chat_id=DEBUG_GROUP, photo=open(filename, 'rb'))
+		os.system('rm ' + filename)
+	if msg.video:
+		filename = getTmpFile(msg)
+		bot.send_document(chat_id=DEBUG_GROUP, document=open(filename, 'rb'))
+		os.system('rm ' + filename)
+	msg.delete()
 
 
 def ban(bad_user, bot):
@@ -185,19 +162,11 @@ def handleGroup(update, context):
 		tb.print_exc()
 
 def handlePrivate(update, context):
-	try:
-		return update.message.reply_text(
-				'Add me to the group you admin and promote me as Admin please.')
-	except Exception as e:
-		print(e)
-		tb.print_exc()
+	update.message.reply_text(
+		'Add me to the group you admin and promote me as Admin please.')
 
 def deleteMsgHandle(update, context):
-	try:
-		deleteMsg(update.message, context.bot)
-	except Exception as e:
-		print(e)
-		tb.print_exc()
+	deleteMsg(update.message, context.bot)
 
 with open('TOKEN') as f:
 	TOKEN = f.readline().strip()

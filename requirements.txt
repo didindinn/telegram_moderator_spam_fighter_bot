@@ -1,1 +1,2 @@
 python-telegram-bot
+telegram_util>=0.0.7
