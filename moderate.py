@@ -2,22 +2,24 @@
 # -*- coding: utf-8 -*-
 
 from telegram.ext import Updater, MessageHandler, Filters
-import json
 import time
 import os
 import traceback as tb
 from telegram_util import getDisplayUser, log_on_fail, getTmpFile
+import yaml
 
-DEBUG_GROUP = -1001198682178  # @bot_debug
-THIS_BOT = 909398533
 JOIN_TIME = {}
 NEW_USER_WAIT_TIME = 3600 * 8
 
-try:
-	with open('BOT_OWNER') as f:
-		BOT_OWNER = int(f.read())
-except:
-	BOT_OWNER = 0
+with open('CREDENTIALS') as f:
+    CREDENTIALS = yaml.load(f, Loader=yaml.FullLoader)
+
+updater = Updater(CREDENTIALS['token'], use_context=True)
+r = updater.bot.send_message(chat_id=-1001198682178, text='test')
+r.delete()
+debug_group = r.chat
+this_bot = r.from_user.id
+BOT_OWNER = CREDENTIALS['owner']
 
 with open('BLACKLIST') as f:
 	BLACKLIST = [x.strip() for x in f.readlines()]
@@ -30,7 +32,7 @@ def saveBlacklist():
 @log_on_fail()
 def handleJoin(update, context):
 	for member in update.message.new_chat_members:
-		if member.id != THIS_BOT and member.id not in JOIN_TIME:
+		if member.id != this_bot and member.id not in JOIN_TIME:
 			JOIN_TIME[msg.chat.id] = JOIN_TIME.get(msg.chat.id, {})
 			JOIN_TIME[msg.chat.id][member.id] = time.time()
 
@@ -80,100 +82,87 @@ def getMsgType(msg):
 	return 'did some action'
 
 @log_on_fail()
-def deleteMsg(msg, bot):
-	bot.send_message(
-		chat_id=DEBUG_GROUP,
+def deleteMsg(msg):
+	debug_group.send_message(
 		text=getDisplayUser(msg.from_user) + ' ' + getMsgType(msg) + 
 		' ' + getGroupName(msg) + ': ' + (msg.text or ''),
 		parse_mode='Markdown',
 		disable_web_page_preview=True)
 	if msg.photo:
 		filename = getTmpFile(msg)
-		bot.send_photo(chat_id=DEBUG_GROUP, photo=open(filename, 'rb'))
+		debug_group.send_photo(photo=open(filename, 'rb'))
 		os.system('rm ' + filename)
 	if msg.video:
 		filename = getTmpFile(msg)
-		bot.send_document(chat_id=DEBUG_GROUP, document=open(filename, 'rb'))
+		debug_group.send_document(document=open(filename, 'rb'))
 		os.system('rm ' + filename)
 	msg.delete()
 
-
-def ban(bad_user, bot):
-	if bad_user.id == THIS_BOT:
+def ban(bad_user):
+	if bad_user.id == this_bot:
 		return  # don't ban the bot itself :p
 	if str(bad_user.id) in BLACKLIST:
-		bot.send_message(
-				chat_id=DEBUG_GROUP,
-				text=getDisplayUser(bad_user) + ' already banned',
-				parse_mode='Markdown')
+		debug_group.send_message(
+			text=getDisplayUser(bad_user) + ' already banned',
+			parse_mode='Markdown')
 		return
 	BLACKLIST.add(str(bad_user.id))
 	saveBlacklist()
-	bot.send_message(
-			chat_id=DEBUG_GROUP,
-			text=getDisplayUser(bad_user) + ' banned',
-			parse_mode='Markdown')
+	debug_group.send_message(
+		text=getDisplayUser(bad_user) + ' banned',
+		parse_mode='Markdown')
 
-def unban(not_so_bad_user, bot):
+def unban(not_so_bad_user):
 	if str(not_so_bad_user.id) not in BLACKLIST:
-		bot.send_message(
-				chat_id=DEBUG_GROUP,
-				text=getDisplayUser(not_so_bad_user) + ' not banned',
-				parse_mode='Markdown')
+		debug_group.send_message(
+			text=getDisplayUser(not_so_bad_user) + ' not banned',
+			parse_mode='Markdown')
 		return
 	BLACKLIST.remove(str(not_so_bad_user.id))
 	saveBlacklist()
-	bot.send_message(
-			chat_id=DEBUG_GROUP,
-			text=getDisplayUser(not_so_bad_user) + ' unbanned',
-			parse_mode='Markdown')
+	debug_group.send_message(
+		text=getDisplayUser(not_so_bad_user) + ' unbanned',
+		parse_mode='Markdown')
 
-def markAction(msg, bot, action):
-	if msg.reply_to_message and msg.reply_to_message.from_user.id == THIS_BOT:
-		for item in msg.reply_to_message.entities:
-			if item['type'] == 'text_mention':
-				action(item.user, bot)
-				return
+def markAction(msg, action):
+	if not msg.reply_to_message:
 		return
-	if msg.reply_to_message:
-		# in group, action and remove the command
-		action(msg.reply_to_message.from_user, bot)
-		bot.delete_message(chat_id=msg.chat_id, message_id=msg.message_id)
-
-def handleGroup(update, context):
-	try:
-		msg = update.message
-		print(msg)
-		if shouldDelete(msg):
-			deleteMsg(msg, context.bot)
-		if msg.from_user.id != BOT_OWNER:
+	for item in msg.reply_to_message.entities:
+		if item['type'] == 'text_mention':
+			action(item.user)
 			return
-		# bot owner only
-		if msg.text == 'spam' or msg.text == 'ban':
-			markAction(msg, context.bot, ban)
-		if msg.text == 'spam':
-			context.bot.delete_message(
-				chat_id=msg.chat_id, message_id=msg.reply_to_message.message_id)
-		if msg.text == 'unban':
-			# not tested
-			markAction(msg, context.bot, unban)
-	except Exception as e:
-		print(e)
-		tb.print_exc()
+	action(msg.reply_to_message.from_user)
+	if msg.chat_id != debug_group.id:
+		r = msg.reply_text('请大家互相理解，友好交流。')
+		r.delete()
+		msg.delete()
+
+@log_on_fail()
+def handleGroup(update, context):
+	msg = update.message
+	if not msg:
+		return
+	if shouldDelete(msg):
+		return deleteMsg(msg)
+	remindIfNecessary(msg) # TODO
+	if msg.from_user.id != BOT_OWNER:
+		return
+	if msg.text in ['spam', 'ban']:
+		markAction(msg, ban)
+	if msg.text == 'spam':
+		context.bot.delete_message(
+			chat_id=msg.chat_id, message_id=msg.reply_to_message.message_id)
+	if msg.text == 'unban':
+		markAction(msg, unban)
 
 def handlePrivate(update, context):
 	update.message.reply_text(
 		'Add me to the group you admin and promote me as Admin please.')
 
 def deleteMsgHandle(update, context):
-	deleteMsg(update.message, context.bot)
+	deleteMsg(update.message)
 
-with open('TOKEN') as f:
-	TOKEN = f.readline().strip()
-
-updater = Updater(TOKEN, use_context=True)
 dp = updater.dispatcher
-
 dp.add_handler(
 		MessageHandler(Filters.status_update.new_chat_members, handleJoin))
 dp.add_handler(
