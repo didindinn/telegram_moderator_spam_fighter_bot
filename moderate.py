@@ -160,6 +160,10 @@ def remindIfNecessary(msg):
 	if matchKey(msg.text, emotional_words) or msg.text.count('?') + msg.text.count('？') >= 3:
 		reminder = '反问，反讽不利于友好交流哦，建议您换成大家更容易理解的表达哦。谢谢啦！'
 		autoDestroy(msg.reply_text(reminder), 10)
+	attacking_words = ['太low']
+	if matchKey(msg.text, attacking_words):
+		reminder = '请友好交流，争取互相理解。谢谢啦！'
+		autoDestroy(msg.reply_text(reminder), 10)
 
 @log_on_fail(debug_group)
 def handleGroup(update, context):
