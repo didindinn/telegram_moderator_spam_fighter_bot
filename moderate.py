@@ -8,7 +8,6 @@ import traceback as tb
 from telegram_util import getDisplayUser, log_on_fail, getTmpFile, autoDestroy, matchKey
 import yaml
 
-
 JOIN_TIME = {}
 NEW_USER_WAIT_TIME = 3600 * 8
 
