@@ -40,7 +40,7 @@ def saveBlacklist():
 
 def needKick(user):
 	name = getDisplayUser(member)
-	return matchKey(name, KICK_KEYS):
+	return matchKey(name, KICK_KEYS)
 
 @log_on_fail(debug_group)
 def handleJoin(update, context):
