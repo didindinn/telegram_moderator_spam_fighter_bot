@@ -39,7 +39,7 @@ def saveBlacklist():
 		f.write('\n'.join(sorted(BLACKLIST)))
 
 def needKick(user):
-	name = getDisplayUser(member)
+	name = getDisplayUser(user)
 	return matchKey(name, KICK_KEYS)
 
 @log_on_fail(debug_group)
