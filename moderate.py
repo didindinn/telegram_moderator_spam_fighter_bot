@@ -31,14 +31,28 @@ with open('BLACKLIST') as f:
 	BLACKLIST = [x.strip() for x in f.readlines()]
 	BLACKLIST = set([x for x in BLACKLIST if x])
 
+with open('KICK_KEYS') as f:
+    KICK_KEYS = set(yaml.load(f, Loader=yaml.FullLoader))
+
 def saveBlacklist():
 	with open('BLACKLIST', 'w') as f:
 		f.write('\n'.join(sorted(BLACKLIST)))
+
+def needKick(user):
+	name = getDisplayUser(member)
+	return matchKey(name, KICK_KEYS):
 
 @log_on_fail(debug_group)
 def handleJoin(update, context):
 	msg = update.message
 	for member in msg.new_chat_members:
+		if needKick(member):
+			context.bot.kick_chat_member(msg.chat.id, member.id)
+			debug_group.message(
+				getDisplayUser(member) + ' kicked from ' + getGroupName(msg),
+				parse_mode='Markdown',
+				disable_web_page_preview=True)
+			continue
 		if member.id != this_bot and member.id not in JOIN_TIME:
 			JOIN_TIME[msg.chat.id] = JOIN_TIME.get(msg.chat.id, {})
 			JOIN_TIME[msg.chat.id][member.id] = time.time()
@@ -88,6 +102,13 @@ def getMsgType(msg):
 		return 'joined'
 	return 'did some action'
 
+def getActionUsers(msg):
+	if msg.new_chat_members:
+		return msg.new_chat_members
+	if msg.left_chat_member:
+		return [msg.left_chat_member]
+	return [msg.from_user]
+
 @log_on_fail(debug_group)
 def deleteMsg(msg):
 	text = msg.text
@@ -95,8 +116,10 @@ def deleteMsg(msg):
 		text = ': ' + text
 	else:
 		text = ''
+	action_users = getActionUsers(msg)
+	names = ', '.join([getDisplayUser(x) for x in action_users])
 	debug_group.send_message(
-		text=getDisplayUser(msg.from_user) + ' ' + getMsgType(msg) + 
+		text=names + ' ' + getMsgType(msg) + 
 		' ' + getGroupName(msg) + text,
 		parse_mode='Markdown',
 		disable_web_page_preview=True)
@@ -193,13 +216,13 @@ def deleteMsgHandle(update, context):
 
 dp = updater.dispatcher
 dp.add_handler(
-		MessageHandler(Filters.status_update.new_chat_members, handleJoin))
+		MessageHandler(Filters.status_update.new_chat_members, handleJoin), group=2)
 dp.add_handler(
 		MessageHandler(Filters.status_update.new_chat_members, deleteMsgHandle), group = 1)
 dp.add_handler(
 		MessageHandler(Filters.status_update.left_chat_member, deleteMsgHandle), group = 1)
-dp.add_handler(MessageHandler(Filters.group, handleGroup), group = 2)
-dp.add_handler(MessageHandler(Filters.private, handlePrivate), group = 3)
+dp.add_handler(MessageHandler(Filters.group, handleGroup), group = 3)
+dp.add_handler(MessageHandler(Filters.private, handlePrivate), group = 4)
 
 updater.start_polling()
 updater.idle()
