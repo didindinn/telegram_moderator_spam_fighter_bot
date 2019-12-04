@@ -48,7 +48,7 @@ def handleJoin(update, context):
 	for member in msg.new_chat_members:
 		if needKick(member):
 			context.bot.kick_chat_member(msg.chat.id, member.id)
-			debug_group.message(
+			debug_group.send_message(
 				getDisplayUser(member) + ' kicked from ' + getGroupName(msg),
 				parse_mode='Markdown',
 				disable_web_page_preview=True)
