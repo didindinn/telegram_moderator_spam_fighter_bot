@@ -42,12 +42,27 @@ def needKick(user):
 	name = getDisplayUser(user)
 	return matchKey(name, KICK_KEYS)
 
+def ban(bad_user):
+	if bad_user.id == this_bot:
+		return  # don't ban the bot itself :p
+	if str(bad_user.id) in BLACKLIST:
+		debug_group.send_message(
+			text=getDisplayUser(bad_user) + ' already banned',
+			parse_mode='Markdown')
+		return
+	BLACKLIST.add(str(bad_user.id))
+	saveBlacklist()
+	debug_group.send_message(
+		text=getDisplayUser(bad_user) + ' banned',
+		parse_mode='Markdown')
+
 @log_on_fail(debug_group)
 def handleJoin(update, context):
 	msg = update.message
 	for member in msg.new_chat_members:
 		if needKick(member):
 			context.bot.kick_chat_member(msg.chat.id, member.id)
+			ban(member)
 			debug_group.send_message(
 				getDisplayUser(member) + ' kicked from ' + getGroupName(msg),
 				parse_mode='Markdown',
@@ -132,20 +147,6 @@ def deleteMsg(msg):
 		debug_group.send_document(document=open(filename, 'rb'))
 		os.system('rm ' + filename)
 	msg.delete()
-
-def ban(bad_user):
-	if bad_user.id == this_bot:
-		return  # don't ban the bot itself :p
-	if str(bad_user.id) in BLACKLIST:
-		debug_group.send_message(
-			text=getDisplayUser(bad_user) + ' already banned',
-			parse_mode='Markdown')
-		return
-	BLACKLIST.add(str(bad_user.id))
-	saveBlacklist()
-	debug_group.send_message(
-		text=getDisplayUser(bad_user) + ' banned',
-		parse_mode='Markdown')
 
 def unban(not_so_bad_user):
 	if str(not_so_bad_user.id) not in BLACKLIST:
